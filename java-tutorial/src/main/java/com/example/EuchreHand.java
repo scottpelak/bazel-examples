@@ -5,10 +5,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class EuchreHand {
     protected final Integer dealerIndex;
+    protected final Scanner keyboard;
     protected final List<Card> deck;
     protected final Player player1;
     protected final Player player2;
@@ -16,7 +18,7 @@ public class EuchreHand {
     protected final Player player4;
     protected final Map<Integer, Player> playersByIndex;
     protected final List<Card> kiddie;
-    protected Integer playerToAct = 1;
+    protected Integer playerToAct;
     protected boolean isTrumpSelected;
     protected Integer team13Tricks = 0;
     protected Integer team24Tricks = 0;
@@ -24,8 +26,10 @@ public class EuchreHand {
 
     protected Suit trump;
 
-    public EuchreHand(Integer dealerIndex) {
+    public EuchreHand(Integer dealerIndex, Scanner keyboard) {
         this.dealerIndex = dealerIndex;
+        this.keyboard = keyboard;
+        playerToAct = (dealerIndex + 1) % 4;
         deck = new ArrayList<>();
         initDeck();
 
@@ -85,13 +89,17 @@ public class EuchreHand {
         return deck;
     }
 
+    public void println(String line) {
+        System.out.println(line);
+    }
+
     protected void printHeader() {
-        System.out.println("╭─────────┬──────────┬──────────┬─────────╮");
-        System.out.println("|         | Team 1/3 | Team 2/4 |  TRUMP  |");
-        System.out.println("├─────────┼──────────┼──────────┼─────────┤");
-        System.out.println("|   SCORE |     7    |     8    |         |");
-        System.out.println("├─────────┼──────────┼──────────┼─────────┤");
-        System.out.println(String.format(
+        println("╭─────────┬──────────┬──────────┬─────────╮");
+        println("|         | Team 1/3 | Team 2/4 |  TRUMP  |");
+        println("├─────────┼──────────┼──────────┼─────────┤");
+        println("|   SCORE |     7    |     8    |         |");
+        println("├─────────┼──────────┼──────────┼─────────┤");
+        println(String.format(
             "|  TRICKS |     %s    |     %s    |  %s |",
             team13Tricks,
             team24Tricks,
@@ -99,11 +107,13 @@ public class EuchreHand {
                 ? trump + " (P" + playerIndexCalledTrump + ")"
                 : "????? "
         ));
-        System.out.println("├─────────┴──────────┴──────────┴─────────┤");
+        println("├─────────┴──────────┴──────────┴─────────┤");
     }
 
-
-
+    protected void printFooter() {
+        println("│                                         |");
+        println("╰─────────────────────────────────────────╯");
+    }
 
     public class Player {
         final Integer index;
@@ -119,12 +129,48 @@ public class EuchreHand {
             this.hand.sort(Card::compareTo);
         }
 
+        protected Scanner getKeyboard() {
+            return EuchreHand.this.keyboard;
+        }
+
         public Integer getIndex() {
             return index;
         }
 
+        protected Integer getPlayerIndex(Integer index) {
+            return (index + 1) % 4;
+        }
+
+        public Integer getLeftPlayerIndex() {
+            return getPlayerIndex(index + 1);
+        }
+
+        public Integer getPartnerPlayerIndex() {
+            return getPlayerIndex(index + 2);
+        }
+
+        public Integer getRightPlayerIndex() {
+            return getPlayerIndex(index + 3);
+        }
+
+        public Player getLeftPlayer() {
+            return EuchreHand.this.getPlayer(getLeftPlayerIndex());
+        }
+
+        public Player getPartnerPlayer() {
+            return EuchreHand.this.getPlayer(getPartnerPlayerIndex());
+        }
+
+        public Player getRightPlayer() {
+            return EuchreHand.this.getPlayer(getRightPlayerIndex());
+        }
+
         public boolean isDealer() {
             return EuchreHand.this.dealerIndex.equals(index);
+        }
+
+        public String getDealerPrintout() {
+            return isDealer() ? "(Dealer)" : "        ";
         }
 
         public String getName() {
@@ -143,6 +189,10 @@ public class EuchreHand {
             return hand;
         }
 
+        public void println(String line) {
+            EuchreHand.this.println(line);
+        }
+
         @Override
         public String toString() {
             return hand.stream()
@@ -150,45 +200,138 @@ public class EuchreHand {
                 .collect(Collectors.joining(" "));
         }
 
-        public void act() {
+        public boolean act() {
+            EuchreHand.this.printHeader();
+            printSelectTrump();
+            EuchreHand.this.printFooter();
 
-            List<String> handPrintout = printHand();
+            int orderingTrump = getKeyboard().nextInt();
 
-            System.out.println(getName() + " to act");
-            System.out.println("─".repeat(handPrintout.get(0).length()));
-            System.out.println("");
-            System.out.println(handPrintout.get(0));
-            System.out.println(handPrintout.get(1));
-            System.out.println(handPrintout.get(2));
+            if (orderingTrump == 1) {
+                println("Ordering trump!");
+            } else {
+                println("Passing");
+            }
 
-            /*
-            if (isTrumpSelected) {
+            return false;
+        }
+
+        protected void printPartnerPlayer() {
+            System.out.println(String.format(
+                "│                 Player %s                |",
+                getPartnerPlayer().getIndex()
+            ));
+
+            // Hard-code to choosing trump
+            if (EuchreHand.this.isTrumpSelected) {
 
             } else {
-                
+
             }
-            */
         }
 
-        protected void printHeader() {
-            System.out.println("╭─────────┬──────────┬──────────┬─────────╮");
-            System.out.println("|         | Team 1/3 | Team 2/4 |  TRUMP  |");
-            System.out.println("├─────────┼──────────┼──────────┼─────────┤");
-            System.out.println("|   SCORE |     7    |     8    |         |");
-            System.out.println("├─────────┼──────────┼──────────┼─────────┤");
-            System.out.println(String.format(
-                "|  TRICKS |     %s    |     %s    |  ♥ (P2) |",
-                EuchreHand.this.team13Tricks,
-                EuchreHand.this.team24Tricks,
-                EuchreHand.this.isTrumpSelected 
-                    ? EuchreHand
+        protected void printSelectTrump() {
+            final List<String> candidatePrintout = isDealer()
+                ? EuchreHand.this.getTrumpCandidate().printCard(5)
+                : EuchreHand.this.getTrumpCandidate().printCard();
 
+            final List<String> blankCard = getBlankCard();
+            
+            // Print parter player
+            println(String.format(
+                "│                 Player %s                |",
+                getPartnerPlayer().getIndex()
+            ));
+            if (getPartnerPlayer().isDealer()) {
+                println("│                 " + "╭─────╮" + "                 |");
+                println("│                 " + candidatePrintout.get(1) + "                 |");
+                println("│                 " + "╰─────╯" + "                 |");
+                println("│                 " + getPartnerPlayer().getDealerPrintout() + "                |");
+            } else {
+                println("│                                         |");
+                println("│                                         |");
+                println("│                                         |");
+                println("│                                         |");
+            }
+
+            // Print opponents: left/right players
+            println(String.format(
+                "│   Player %s                   Player %s   |",
+                getLeftPlayer().getIndex(),
+                getRightPlayer().getIndex()
+            ));
+            List<String> leftPlayerCard = 
+                getLeftPlayer().isDealer()
+                ? candidatePrintout
+                : blankCard;
+            List<String> rightPlayerCard = 
+                getLeftPlayer().isDealer()
+                ? candidatePrintout
+                : blankCard;
+            final String opponentFormat = "│   %s                    %s    |";
+            for (int i = 0; i < 3; i ++) {
+                println(String.format(
+                    opponentFormat,
+                    leftPlayerCard.get(i),
+                    rightPlayerCard.get(i)
+                ));                
+            }
+            println(String.format(
+                "│   %s                   %s   │",
+                getLeftPlayer().getDealerPrintout(),
+                getRightPlayer().getDealerPrintout()
+            ));
+
+            // Print this player
+            println(String.format(
+                "│ Player %s %s                       │",
+                getIndex(),
+                getDealerPrintout()
+            ));
+            if (isDealer()) {
+                // Print candidate card
+                final String candidateFormat = "│                 %s                 |";
+                for (int i = 0; i < 3; i ++) {
+                    println(String.format(candidateFormat, candidatePrintout.get(i)));
+                }
+            }
+            println("| ─────────────────────────────────────── │");
+            println("| Order up trump? Press [0] No or [1] Yes │");
+            printHand();
+        }
+
+        public void printHand() {
+            List<List<String>> cards = List.of(
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>()
             );
-            System.out.println("├─────────┴──────────┴──────────┴─────────┤");
-        }
 
-        protected void printSelectTrumpNotDealer() {
-            /*
+            for (Card card : this.hand) {
+                List<String> printout = card.printCard();
+                cards.get(0).add(printout.get(0));
+                cards.get(1).add(printout.get(1));
+                cards.get(2).add(printout.get(2));
+            }
+
+            final int handSize = hand.size();
+            if (handSize < 5) {
+                List<String> blankCard = getBlankCard();
+                for (int i = handSize; i < 5; i ++) {
+                    cards.get(0).add(blankCard.get(0));
+                    cards.get(1).add(blankCard.get(1));
+                    cards.get(2).add(blankCard.get(2));
+                }
+            }
+            final String prefix = "| ";
+            final String suffix = " |";
+            for (int i = 0; i < cards.size(); i ++) {
+                println(prefix + cards.get(i).stream().collect(Collectors.joining(" ")) + suffix);
+            }
+        }
+            
+            
+/*
 ╭─────────┬──────────┬──────────┬─────────╮
 |         | Team 1/3 | Team 2/4 |  TRUMP  |
 ├─────────┼──────────┼──────────┼─────────┤
@@ -219,10 +362,6 @@ public class EuchreHand {
 │                                         |
 ╰─────────────────────────────────────────╯
  */
-        }
-
-        
-
 
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
@@ -236,12 +375,12 @@ public class EuchreHand {
 │                 ╭─────╮                 |
 │                 │  J♥ │                 |
 │                 ╰─────╯                 |
-│                                         |
+│                 (Dealer)                |
 │   Player 2                   Player 4   |
 │   ╭─────╮                    ╭─────╮    |
 │   │  J♥ │                    │  J♥ │    |
 │   ╰─────╯                    ╰─────╯    |
-│                              Dealer     │
+│   (Dealer)                   (Dealer)   │
 │                                         │
 │ Player 1                                │
 | ─────────────────────────────────────── │
@@ -323,35 +462,6 @@ public class EuchreHand {
 │                                         |
 │                                         │
 │                                         │
-│ Player 1 (Dealer)                       │
-│                 ╭─────╮                 |
-│                 │  J♥ │                 |
-│                 ╰─────╯                 |
-| ─────────────────────────────────────── │
-| Order up trump? Press [0] No or [1] Yes │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
-╰─────────────────────────────────────────╯
- */
-/*
-╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
-├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
-├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                                         |
-│                                         |
-│                                         |
-│                                         |
-│   Player 2                   Player 4   |
-│                                         |
-│                                         |
-│                                         |
-│                                         │
-│                                         │
 │ Player 1 (Dealer) ╭─────╮               │
 │                   │  J♥ │               |
 │                   ╰─────╯               |
@@ -394,24 +504,7 @@ public class EuchreHand {
 ╰─────────────────────────────────────────╯
  */
 
-        public List<String> printHand() {
-            List<String> line0 = new ArrayList<>();
-            List<String> line1 = new ArrayList<>();
-            List<String> line2 = new ArrayList<>();
-
-            for (Card card : this.hand) {
-                List<String> printout = card.printCard();
-                line0.add(printout.get(0));
-                line1.add(printout.get(1));
-                line2.add(printout.get(2));
-            }
-
-            return List.of(
-                line0.stream().collect(Collectors.joining(" ")),
-                line1.stream().collect(Collectors.joining(" ")),
-                line2.stream().collect(Collectors.joining(" "))
-            );
-        }
+        
 
     }
 
@@ -534,6 +627,14 @@ public class EuchreHand {
                 "╰─────╯"
             );
         }
+    }
+
+    protected List<String> getBlankCard() {
+        return List.of(
+            "       ",
+            "       ",
+            "       "
+        );
     }
 
 }

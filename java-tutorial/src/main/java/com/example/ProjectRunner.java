@@ -15,26 +15,9 @@ public class ProjectRunner {
                 System.out.print("\033\143");
                 System.out.println("Lets Play Euchre!");
 
-                EuchreHand hand = new EuchreHand();
-                hand.getPlayer().act();
-
-                // TODO: WIP!
-
-                System.out.println("");
-                System.out.println("");
-                System.out.println("Do you want to order " + hand.getTrumpCandidate().toString() + " as trump? [0] No [1] Yes");
-                int isOrderingTrump = keyboard.nextInt();
-
-                if (isOrderingTrump == 1) {
-                    System.out.println("Ordering the dealer to pick up " + hand.getTrumpCandidate().toString());
-                } else{
-                    System.out.println("Player 1 passes");
-                    System.out.println("");
-                    isPlaying = false;
-                }
+                EuchreHand hand = new EuchreHand(4, keyboard);
+                isPlaying = hand.getPlayer().act();
             }
-
         }
-
     }
 }
