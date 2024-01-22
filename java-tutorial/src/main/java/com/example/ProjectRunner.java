@@ -15,8 +15,8 @@ public class ProjectRunner {
                 System.out.print("\033\143");
                 System.out.println("Lets Play Euchre!");
 
-                EuchreHand hand = new EuchreHand(4, keyboard);
-                isPlaying = hand.getPlayer().act();
+                new EuchreHand(4, keyboard);
+                isPlaying = false;
             }
         }
     }

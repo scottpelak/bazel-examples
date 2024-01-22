@@ -9,6 +9,11 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class EuchreHand {
+
+    protected static Integer getPlayerIndex(Integer index) {
+        return ((index - 1) % 4) + 1;
+    }
+
     protected final Integer dealerIndex;
     protected final Scanner keyboard;
     protected final List<Card> deck;
@@ -19,6 +24,8 @@ public class EuchreHand {
     protected final Map<Integer, Player> playersByIndex;
     protected final List<Card> kiddie;
     protected Integer playerToAct;
+    protected boolean isSelectingTrump;
+    protected boolean isDiscardingTrump;
     protected boolean isTrumpSelected;
     protected Integer team13Tricks = 0;
     protected Integer team24Tricks = 0;
@@ -29,7 +36,7 @@ public class EuchreHand {
     public EuchreHand(Integer dealerIndex, Scanner keyboard) {
         this.dealerIndex = dealerIndex;
         this.keyboard = keyboard;
-        playerToAct = (dealerIndex + 1) % 4;
+        playerToAct = getPlayerIndex(dealerIndex + 1);
         deck = new ArrayList<>();
         initDeck();
 
@@ -47,6 +54,14 @@ public class EuchreHand {
         playersByIndex.put(player2.getIndex(), player2);
         playersByIndex.put(player3.getIndex(), player3);
         playersByIndex.put(player4.getIndex(), player4);
+
+        isSelectingTrump = true;
+        isDiscardingTrump = false;
+        isTrumpSelected = false;
+
+        while(getPlayer().selectTrump() == 0) {
+            incrementPlayerToAct();
+        }
     }
 
     public Player getPlayer1() {
@@ -77,6 +92,10 @@ public class EuchreHand {
         return kiddie.get(0);
     }
 
+    protected void incrementPlayerToAct() {
+        playerToAct = getPlayerIndex(playerToAct + 1);
+    }
+
     protected List<Card> initDeck() {
         for (Suit suit : Suit.values()) {
             for (Rank rank : Rank.values()) {
@@ -95,12 +114,12 @@ public class EuchreHand {
 
     protected void printHeader() {
         println("╭─────────┬──────────┬──────────┬─────────╮");
-        println("|         | Team 1/3 | Team 2/4 |  TRUMP  |");
+        println("│         │ Team 1/3 │ Team 2/4 │  TRUMP  │");
         println("├─────────┼──────────┼──────────┼─────────┤");
-        println("|   SCORE |     7    |     8    |         |");
+        println("│   SCORE │     7    │     8    │         │");
         println("├─────────┼──────────┼──────────┼─────────┤");
         println(String.format(
-            "|  TRICKS |     %s    |     %s    |  %s |",
+            "│  TRICKS │     %s    │     %s    │  %s │",
             team13Tricks,
             team24Tricks,
             isTrumpSelected 
@@ -111,7 +130,7 @@ public class EuchreHand {
     }
 
     protected void printFooter() {
-        println("│                                         |");
+        println("│                                         │");
         println("╰─────────────────────────────────────────╯");
     }
 
@@ -137,8 +156,32 @@ public class EuchreHand {
             return index;
         }
 
-        protected Integer getPlayerIndex(Integer index) {
-            return (index + 1) % 4;
+        public boolean isDealer() {
+            return EuchreHand.this.dealerIndex.equals(index);
+        }
+
+        public String getDealerPrintout() {
+            return isDealer() ? DEALER_LABEL : DEALER_BLANK;
+        }
+
+        public String getName() {
+            return "Player " + getIndex();
+        }
+        
+        /**
+         * 
+         * @param isRightPlayer If the player is the right player which reverses order of dealer indicator
+         * @return 17 character player name with dealer indicator
+         * "Player 2 (Dealer)"
+         * "Player 2         "
+         * "(Dealer) Player 2"
+         * "         Player 2"
+         */
+        public String getName(boolean isRightPlayer) {
+            String name = "Player " + index;
+            return isRightPlayer
+                ? getDealerPrintout() + " " + getName()
+                : getName() + " " + getDealerPrintout();
         }
 
         public Integer getLeftPlayerIndex() {
@@ -165,18 +208,6 @@ public class EuchreHand {
             return EuchreHand.this.getPlayer(getRightPlayerIndex());
         }
 
-        public boolean isDealer() {
-            return EuchreHand.this.dealerIndex.equals(index);
-        }
-
-        public String getDealerPrintout() {
-            return isDealer() ? "(Dealer)" : "        ";
-        }
-
-        public String getName() {
-            return "Player " + getIndex();
-        }
-
         public List<Card> getCardsPlayed() {
             return cardsPlayed;
         }
@@ -187,6 +218,10 @@ public class EuchreHand {
 
         public List<Card> getHand() {
             return hand;
+        }
+
+        public Card getTrumpCandidate() {
+            return isDealer() ? EuchreHand.this.getTrumpCandidate() : null;
         }
 
         public void println(String line) {
@@ -201,307 +236,447 @@ public class EuchreHand {
         }
 
         public boolean act() {
-            EuchreHand.this.printHeader();
-            printSelectTrump();
-            EuchreHand.this.printFooter();
+            
+
+
+
+
 
             int orderingTrump = getKeyboard().nextInt();
-
-            if (orderingTrump == 1) {
-                println("Ordering trump!");
-            } else {
-                println("Passing");
-            }
-
-            return false;
-        }
-
-        protected void printPartnerPlayer() {
-            System.out.println(String.format(
-                "│                 Player %s                |",
-                getPartnerPlayer().getIndex()
-            ));
-
-            // Hard-code to choosing trump
-            if (EuchreHand.this.isTrumpSelected) {
-
-            } else {
-
-            }
-        }
-
-        protected void printSelectTrump() {
-            final List<String> candidatePrintout = isDealer()
-                ? EuchreHand.this.getTrumpCandidate().printCard(5)
-                : EuchreHand.this.getTrumpCandidate().printCard();
-
-            final List<String> blankCard = getBlankCard();
             
-            // Print parter player
-            println(String.format(
-                "│                 Player %s                |",
-                getPartnerPlayer().getIndex()
-            ));
-            if (getPartnerPlayer().isDealer()) {
-                println("│                 " + "╭─────╮" + "                 |");
-                println("│                 " + candidatePrintout.get(1) + "                 |");
-                println("│                 " + "╰─────╯" + "                 |");
-                println("│                 " + getPartnerPlayer().getDealerPrintout() + "                |");
-            } else {
-                println("│                                         |");
-                println("│                                         |");
-                println("│                                         |");
-                println("│                                         |");
-            }
-
-            // Print opponents: left/right players
-            println(String.format(
-                "│   Player %s                   Player %s   |",
-                getLeftPlayer().getIndex(),
-                getRightPlayer().getIndex()
-            ));
-            List<String> leftPlayerCard = 
-                getLeftPlayer().isDealer()
-                ? candidatePrintout
-                : blankCard;
-            List<String> rightPlayerCard = 
-                getLeftPlayer().isDealer()
-                ? candidatePrintout
-                : blankCard;
-            final String opponentFormat = "│   %s                    %s    |";
-            for (int i = 0; i < 3; i ++) {
-                println(String.format(
-                    opponentFormat,
-                    leftPlayerCard.get(i),
-                    rightPlayerCard.get(i)
-                ));                
-            }
-            println(String.format(
-                "│   %s                   %s   │",
-                getLeftPlayer().getDealerPrintout(),
-                getRightPlayer().getDealerPrintout()
-            ));
-
-            // Print this player
-            println(String.format(
-                "│ Player %s %s                       │",
-                getIndex(),
-                getDealerPrintout()
-            ));
-            if (isDealer()) {
-                // Print candidate card
-                final String candidateFormat = "│                 %s                 |";
-                for (int i = 0; i < 3; i ++) {
-                    println(String.format(candidateFormat, candidatePrintout.get(i)));
-                }
-            }
-            println("| ─────────────────────────────────────── │");
-            println("| Order up trump? Press [0] No or [1] Yes │");
-            printHand();
+            // Demo: 
+            return orderingTrump != 1;
         }
 
-        public void printHand() {
+        public int selectTrump() {
+            printBoard(
+                getLeftPlayer().getTrumpCandidate(),
+                getPartnerPlayer().getTrumpCandidate(),
+                getRightPlayer().getTrumpCandidate(),
+                getTrumpCandidate()
+            );
+            println("Order up trump? Press [0] No or [1] Yes: ");
+            return getKeyboard().nextInt();
+        }
+
+        /**
+         * /* FINAL
+         * ╭─────────┬──────────┬──────────┬─────────╮
+         * │         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+         * ├─────────┼──────────┼──────────┼─────────┤
+         * │   SCORE │     7    │     8    │         │
+         * ├─────────┼──────────┼──────────┼─────────┤
+         * │  TRICKS │     1    │     2    │  ♥ (P2) │
+         * ├─────────┴──────────┴──────────┴─────────┤
+         * │                 Player 3 (Dealer)       │
+         * │                 ╭─────╮                 │
+         * │                 │  J♥ │                 │
+         * │                 │     │                 │
+         * │                 ╰─────╯                 │
+         * │   Player 2 (Dealer) (Dealer) Player 4   │
+         * │   ╭─────╮                    ╭─────╮    │
+         * │   │  J♥ │                    │  J♥ │    │
+         * │   │     │                    │     │    │
+         * │   ╰─────╯                    ╰─────╯    │
+         * │                 ╭─────╮                 │
+         * │                 │  J♥ │                 │
+         * │   Player 1      │     │                 │
+         * │   (Dealer)      ╰─────╯                 │
+         * │ ─────────────────────────────────────── │
+         * │ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+         * │ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+         * │ │     │ │     │ │     │ │     │ │     │ │
+         * │ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+         * │                                         │
+         * ╰─────────────────────────────────────────╯
+         * Order up trump? Press [0] No or [1] Yes: 
+         * 
+         * @param playerCard
+         * @param leftPlayerCard
+         * @param partnerPlayerCard
+         * @param rightPlayerCard
+         */
+        public void printBoard(
+            Card leftPlayerCard,
+            Card partnerPlayerCard,
+            Card rightPlayerCard,
+            Card playerCard
+        ) {
+            Player leftPlayer = getLeftPlayer();
+            Player partnerPlayer = getPartnerPlayer();
+            Player rightPlayer = getRightPlayer();
+            
+            // Print header
+            EuchreHand.this.printHeader();
+
+            // Print partner
+            println(String.format(
+                PARTNER_NAME,
+                partnerPlayer.getName(false)
+            ));
+            List<String> parterCardPrintout = getCardPrintout(partnerPlayerCard);
+            for (String line : parterCardPrintout) {
+                println(String.format(PARTNER_CARD, line));
+            }
+
+            // Print opponents
+            println(String.format(
+                OPPONENT_NAME,
+                leftPlayer.getName(false),
+                rightPlayer.getName(true)
+            ));
+            List<String> leftCardPrintout = getCardPrintout(leftPlayerCard);
+            List<String> rightCardPrintout = getCardPrintout(rightPlayerCard);
+            final int opponentPrintoutSize = leftCardPrintout.size();
+            for (int i = 0; i < opponentPrintoutSize; i ++) {
+                println(String.format(
+                    OPPONENT_CARD,
+                    leftCardPrintout.get(i),
+                    rightCardPrintout.get(i)
+                ));
+            }
+
+            // Print player
+            List<String> playerCardPrintout = getCardPrintout(
+                playerCard, 
+                isDealer() && EuchreHand.this.isDiscardingTrump ? DEALER_CANDIDATE_INDEX : null
+            );
+            println(String.format(PARTNER_CARD, playerCardPrintout.get(0)));
+            println(String.format(PARTNER_CARD, playerCardPrintout.get(1)));
+            println(String.format(PLAYER_CARD, getName(), playerCardPrintout.get(2)));
+            println(String.format(PLAYER_CARD, getDealerPrintout(), playerCardPrintout.get(3)));
+
+            // Print player hand
             List<List<String>> cards = List.of(
+                new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>(),
                 new ArrayList<>()
             );
 
-            for (Card card : this.hand) {
-                List<String> printout = card.printCard();
+            final int handSize = hand.size();
+            for (int i = 0 ; i < 5; i ++) {
+                Integer cardIndex = EuchreHand.this.isSelectingTrump ? null : i;
+                List<String> printout = i < handSize
+                    ? hand.get(i).printCard(cardIndex)
+                    : getBlankCard();
+
                 cards.get(0).add(printout.get(0));
                 cards.get(1).add(printout.get(1));
                 cards.get(2).add(printout.get(2));
+                cards.get(3).add(printout.get(3));
             }
 
-            final int handSize = hand.size();
-            if (handSize < 5) {
-                List<String> blankCard = getBlankCard();
-                for (int i = handSize; i < 5; i ++) {
-                    cards.get(0).add(blankCard.get(0));
-                    cards.get(1).add(blankCard.get(1));
-                    cards.get(2).add(blankCard.get(2));
-                }
-            }
-            final String prefix = "| ";
-            final String suffix = " |";
+            // Print out the hand
+            println(PLAYER_SEPARATOR);
             for (int i = 0; i < cards.size(); i ++) {
-                println(prefix + cards.get(i).stream().collect(Collectors.joining(" ")) + suffix);
+                println(PLAYER_HAND_START + cards.get(i).stream().collect(Collectors.joining(" ")) + PLAYER_HAND_END);
             }
+
+            // Print footer
+            EuchreHand.this.printFooter();
         }
-            
+
+
+   
+/* FINAL
+╭─────────┬──────────┬──────────┬─────────╮
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+├─────────┼──────────┼──────────┼─────────┤
+│   SCORE │     7    │     8    │         │
+├─────────┼──────────┼──────────┼─────────┤
+│  TRICKS │     1    │     2    │  ♥ (P2) │
+├─────────┴──────────┴──────────┴─────────┤
+│                 Player 3 (Dealer)       │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│   Player 2 (Dealer) (Dealer) Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│   Player 1      │     │                 │
+│   (Dealer)      ╰─────╯                 │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │     │ │     │ │     │ │     │ │     │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
+╰─────────────────────────────────────────╯
+Order up trump? Press [0] No or [1] Yes: 
+ */
+
+
             
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
 ├─────────┼──────────┼──────────┼─────────┤
-|   SCORE |     7    |     8    |         |
+│   SCORE │     7    │     8    │         │
 ├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
+│  TRICKS │     1    │     2    │  ♥ (P2) │
 ├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                                         |
-│                                         |
-│                                         |
-│                                         |
-│   Player 2                   Player 4   |
-│                                         |
-│                                         |
-│                                         |
+│                 Player 3                │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│   Player 2                   Player 4   │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
 │                                         │
 │                                         │
 │ Player 1 (Dealer)                       │
-│                 ╭─────╮                 |
-│                 │  J♥ │                 |
-│                 ╰─────╯                 |
-| ─────────────────────────────────────── │
-| Order up trump? Press [0] No or [1] Yes │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │     │ │     │ │     │ │     │ │     │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
 ╰─────────────────────────────────────────╯
+Order up trump? Pres [0] No or [1] Yes: 
  */
 
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
 ├─────────┼──────────┼──────────┼─────────┤
-|   SCORE |     7    |     8    |         |
+│   SCORE │     7    │     8    │         │
 ├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
+│  TRICKS │     1    │     2    │  ♥ (P2) │
 ├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                 ╭─────╮                 |
-│                 │  J♥ │                 |
-│                 ╰─────╯                 |
-│                 (Dealer)                |
-│   Player 2                   Player 4   |
-│   ╭─────╮                    ╭─────╮    |
-│   │  J♥ │                    │  J♥ │    |
-│   ╰─────╯                    ╰─────╯    |
-│   (Dealer)                   (Dealer)   │
+│                 Player 3                │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│   Player 2                   Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
 │                                         │
 │ Player 1                                │
-| ─────────────────────────────────────── │
-| Press the number of the card to play.   │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
 ╰─────────────────────────────────────────╯
- */
+Press the number of the card to play: 
+*/
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
 ├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
+│  TRICKS │     1    │     2    │  ♥ (P2) │
 ├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                 ╭─────╮                 |
-│                 │  J♥ │                 |
-│                 ╰─────╯                 |
-│                                         |
-│   Player 2                   Player 4   |
-│   ╭─────╮                    ╭─────╮    |
-│   │  J♥ │                    │  J♥ │    |
-│   ╰─────╯                    ╰─────╯    |
+│                 Player 3                │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│                                         │
+│   Player 2                   Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
 │                              Dealer     │
 │                                         │
 │ Player 1                                │
-| ─────────────────────────────────────── │
-| Press the number of the card to play    │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
 ╰─────────────────────────────────────────╯
- */
+Press the number of the card to play:  
+*/
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
 ├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ?????  |
+│  TRICKS │     1    │     2    │  ?????  │
 ├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                                         |
-│                                         |
-│                                         |
-│                                         |
-│   Player 2                   Player 4   |
-│                              ╭─────╮    |
-│                              │  J♥ │    |
-│                              ╰─────╯    |
+│                 Player 3                │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│   Player 2                   Player 4   │
+│                              ╭─────╮    │
+│                              │  J♥ │    │
+│                              ╰─────╯    │
 │                              (Dealer)   │
 │                                         │
 │ Player 1                                │
-| ─────────────────────────────────────── │
-| Order up trump? Press [0] No or [1] Yes │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
+╰─────────────────────────────────────────╯
+Order up trump? Press [0] No or [1] Yes: 
+*/
+/*
+╭─────────┬──────────┬──────────┬─────────╮
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+├─────────┼──────────┼──────────┼─────────┤
+│  TRICKS │     1    │     2    │  ♥ (P2) │
+├─────────┴──────────┴──────────┴─────────┤
+│                 Player 3                │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│                                         │
+│   Player 2          (Dealer) Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
+│                                         │
+│ Player 1                                │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
+╰─────────────────────────────────────────╯
+Press the number of the card to play: 
+
+╭─────────┬──────────┬──────────┬─────────╮
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+├─────────┼──────────┼──────────┼─────────┤
+│  TRICKS │     1    │     2    │  ♥ (P2) │
+├─────────┴──────────┴──────────┴─────────┤
+│                 Player 3 (Dealer)       │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│                                         │
+│   Player 2 (Dealer)          Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
+│                                         │
+│ Player 1 (Dealer)                       │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
+╰─────────────────────────────────────────╯
+Press the number of the card to play: 
+
+
+╭─────────┬──────────┬──────────┬─────────╮
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+├─────────┼──────────┼──────────┼─────────┤
+│  TRICKS │     1    │     2    │  ♥ (P2) │
+├─────────┴──────────┴──────────┴─────────┤
+│                 Player 3 (Dealer)       │
+│                 ╭─────╮                 │
+│                 │  J♥ │                 │
+│                 │     │                 │
+│                 ╰─────╯                 │
+│                                         │
+│   Player 2 (Dealer)          Player 4   │
+│   ╭─────╮                    ╭─────╮    │
+│   │  J♥ │                    │  J♥ │    │
+│   │     │                    │     │    │
+│   ╰─────╯                    ╰─────╯    │
+│                                         │
+│ Player 1 (Dealer)                       │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
+╰─────────────────────────────────────────╯
+Press the number of the card to play: 
+
+
+ */
+/*
+╭─────────┬──────────┬──────────┬─────────╮
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
+├─────────┼──────────┼──────────┼─────────┤
+│  TRICKS │     1    │     2    │  ♥ (P2) │
+├─────────┴──────────┴──────────┴─────────┤
+│                 Player 3                │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│   Player 2                   Player 4   │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│ Player 1 (Dealer) ╭─────╮               │
+│                   │  J♥ │               │
+│                   │     │               │
+│                   ╰─────╯               │
+│ ─────────────────────────────────────── │
+│ Order up trump? Press [0] No or [1] Yes │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │     │ │     │ │     │ │     │ │     │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
+│                                         │
 ╰─────────────────────────────────────────╯
  */
 /*
 ╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
+│         │ Team 1/3 │ Team 2/4 │  TRUMP  │
 ├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
+│  TRICKS │     1    │     2    │  ♥ (P2) │
 ├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                                         |
-│                                         |
-│                                         |
-│                                         |
-│   Player 2                   Player 4   |
-│                                         |
-│                                         |
-│                                         |
+│                 Player 3                │
+│                                         │
+│                                         │
+│                                         │
+│                                         │
+│   Player 2                   Player 4   │
+│                                         │
+│                                         │
+│                                         │
 │                                         │
 │                                         │
 │ Player 1 (Dealer) ╭─────╮               │
-│                   │  J♥ │               |
-│                   ╰─────╯               |
-| ─────────────────────────────────────── │
-| Order up trump? Press [0] No or [1] Yes │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
-╰─────────────────────────────────────────╯
- */
-/*
-╭─────────┬──────────┬──────────┬─────────╮
-|         | Team 1/3 | Team 2/4 |  TRUMP  |
-├─────────┼──────────┼──────────┼─────────┤
-|  TRICKS |     1    |     2    |  ♥ (P2) |
-├─────────┴──────────┴──────────┴─────────┤
-│                 Player 3                |
-│                                         |
-│                                         |
-│                                         |
-│                                         |
-│   Player 2                   Player 4   |
-│                                         |
-│                                         |
-│                                         |
+│                   │  J♥ │               │
+│                   │ [5] │               │
+│                   ╰─────╯               │
+│ ─────────────────────────────────────── │
+│ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ │
+│ │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ │
+│ │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ │
+│ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ │
 │                                         │
-│                                         │
-│ Player 1 (Dealer) ╭─────╮               │
-│                   │  J♥ │               |
-|                   │ [5] │               |
-│                   ╰─────╯               |
-| ─────────────────────────────────────── │
-| Press the number of the card to discard │
-| ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ ╭─────╮ |
-| │  A♦ │ │  Q♦ │ │  A♧ │ │  K♥ │ │  Q♥ │ |
-| │ [0] │ │ [1] │ │ [2] │ │ [3] │ │ [4] │ |
-| ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ ╰─────╯ |
-│                                         |
 ╰─────────────────────────────────────────╯
+Press the number of the card to discard: 
  */
 
         
@@ -602,13 +777,15 @@ public class EuchreHand {
          * @return Printout of card, e.g.
          * ╭─────╮
          * │  J♥ │
+         * │     │
          * ╰─────╯
          */
         public List<String> printCard() {
             return List.of(
-                "╭─────╮",
-                "│ " + toString() + " │",
-                "╰─────╯"
+                CARD_TOP,
+                String.format(CARD_VALUE, this),
+                CARD_SPACE,
+                CARD_BOTTOM
             );
         }
 
@@ -620,21 +797,52 @@ public class EuchreHand {
          * ╰─────╯
          */
         public List<String> printCard(Integer index) {
+            if (index == null) {
+                return printCard();
+            }
             return List.of(
-                "╭─────╮",
-                "│ " + this + " │",
-                "│ ["  + index + "] │",
-                "╰─────╯"
+                CARD_TOP,
+                String.format(CARD_VALUE, this),
+                String.format(CARD_INDEX, index),
+                CARD_BOTTOM
             );
         }
     }
 
-    protected List<String> getBlankCard() {
+    protected static final String DEALER_LABEL = "(Dealer)";
+    protected static final String DEALER_BLANK = "        ";
+    protected static final String CARD_TOP    = "╭─────╮";
+    protected static final String CARD_VALUE  = "│ %s │";
+    protected static final String CARD_INDEX  = "│ [%s] │";
+    protected static final String CARD_SPACE  = "│     │";
+    protected static final String CARD_BOTTOM = "╰─────╯";
+    protected static final String CARD_BLANK  = "       ";
+    protected static final String PLAYER_SEPARATOR =  "│ ─────────────────────────────────────── │";
+    protected static final String PARTNER_CARD =      "│                 %s                 │";
+    protected static final String PARTNER_NAME =      "│                 %s       │";
+    protected static final String OPPONENT_CARD =     "│   %s                    %s    │";
+    protected static final String OPPONENT_NAME =     "│   %s %s   │";
+    protected static final String PLAYER_CARD =       "│   %s      %s                 │";
+    protected static final String PLAYER_HAND_START = "│ ";
+    protected static final String PLAYER_HAND_END = " │";
+    protected static final Integer DEALER_CANDIDATE_INDEX = 5;
+    protected static List<String> getBlankCard() {
         return List.of(
-            "       ",
-            "       ",
-            "       "
+            CARD_BLANK, 
+            CARD_BLANK, 
+            CARD_BLANK, 
+            CARD_BLANK
         );
+    }
+
+    protected static List<String> getCardPrintout(Card card, Integer index) {
+        return card == null 
+            ? getBlankCard() 
+            : card.printCard(index);
+    }
+
+    protected static List<String> getCardPrintout(Card card) {
+        return getCardPrintout(card, null);
     }
 
 }
